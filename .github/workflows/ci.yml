@@ -1,5 +1,5 @@
-# Compile le jeu et le serveur, lance les tests, puis publie l'image Docker du serveur
-# sur le GitHub Container Registry (ghcr.io) à chaque push sur main ou tag v*.
+# Compile le jeu et le serveur, lance les tests, puis publie les images Docker (serveur en ligne
+# et démo du jeu dans le navigateur) sur le GitHub Container Registry (ghcr.io) à chaque push sur main ou tag v*.
 name: CI
 
 on:
@@ -89,9 +89,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker:
-    name: Image Docker du serveur
+    name: Image ${{ matrix.image }}
     needs: build-test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image: bataille-navale-serveur
+            dockerfile: Dockerfile
+          - image: bataille-navale-demo
+            dockerfile: demo/Dockerfile
     permissions:
       contents: read
       packages: write
@@ -113,7 +120,7 @@ jobs:
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/bataille-navale-serveur
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=semver,pattern={{version}}
@@ -122,9 +129,10 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

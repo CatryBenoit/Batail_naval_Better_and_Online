@@ -1,11 +1,92 @@
-# Serveur du jeu en ligne, à coller tel quel dans OpenMediaVault (Services > Compose > Files).
-# L'image est construite et publiée par GitHub Actions (.github/workflows/ci.yml).
+# Bataille Navale sur un serveur perso (par exemple le plugin Compose d'OpenMediaVault).
+# Les images sont construites et publiées par GitHub Actions (.github/workflows/ci.yml).
+#
+# Tout passe par Traefik, sur le port 8765 :
+#   - /games...              -> serveur du jeu en ligne (adresse à mettre dans le jeu : IP-du-serveur:8765)
+#   - /demo/batailnail/      -> le jeu dans le navigateur (noVNC)
+# Sablier démarre ces deux conteneurs à la première requête et les arrête quand ils ne servent plus.
+
 services:
-  bataille-navale:
+  traefik:
+    image: traefik:v3.7
+    container_name: bataille-traefik
+    restart: unless-stopped
+    command:
+      - --experimental.plugins.sablier.modulename=github.com/sablierapp/sablier-traefik-plugin
+      # v1.3.1 est refusée par le catalogue de plugins Traefik (échec du contrôle d'intégrité)
+      - --experimental.plugins.sablier.version=v1.3.0
+      - --entryPoints.web.address=:80
+      # derrière un autre reverse proxy (Nginx Proxy Manager...) : on garde le https d'origine
+      - --entryPoints.web.forwardedHeaders.insecure=true
+      - --providers.docker=true
+      # seuls les conteneurs avec traefik.enable=true sont exposés (pas tes autres conteneurs)
+      - --providers.docker.exposedByDefault=false
+    ports:
+      - "8765:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  sablier:
+    image: sablierapp/sablier:1.18.0
+    container_name: bataille-sablier
+    restart: unless-stopped
+    command:
+      - start
+      - --provider.name=docker
+      # vérifie toutes les secondes si un conteneur réveillé est prêt (5 s par défaut)
+      - --strategy.blocking.default-refresh-frequency=1s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  serveur:
     image: ghcr.io/catrybenoit/bataille-navale-serveur:latest
     container_name: bataille-navale
-    restart: unless-stopped
-    ports:
-      - "8765:8765"   # port de la machine : port du conteneur
+    restart: "no"   # c'est Sablier qui le démarre et l'arrête
+    healthcheck:    # Sablier attend qu'il soit "healthy" avant de laisser passer la requête
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:8765/games"]
+      interval: 2s
+      timeout: 2s
+      retries: 3
+    labels:
+      - sablier.enable=true
+      - sablier.group=bataille-serveur
+      - traefik.enable=true
+      - traefik.docker.allownonrunning=true
+      - traefik.http.routers.bataille-serveur.rule=PathPrefix(`/games`)
+      - traefik.http.routers.bataille-serveur.middlewares=bataille-serveur-sablier
+      # adresse par nom (et non l'IP du conteneur, inconnue tant qu'il est arrêté)
+      - traefik.http.services.bataille-serveur.loadbalancer.server.url=http://bataille-navale:8765
+      # le jeu est un client HTTP, pas un navigateur : la requête attend que le serveur soit prêt
+      - traefik.http.middlewares.bataille-serveur-sablier.plugin.sablier.sablierUrl=http://sablier:10000
+      - traefik.http.middlewares.bataille-serveur-sablier.plugin.sablier.group=bataille-serveur
+      - traefik.http.middlewares.bataille-serveur-sablier.plugin.sablier.sessionDuration=10m
+      - traefik.http.middlewares.bataille-serveur-sablier.plugin.sablier.blocking.timeout=30s
+
+  demo:
+    image: ghcr.io/catrybenoit/bataille-navale-demo:latest
+    container_name: bataille-navale-demo
+    restart: "no"
     environment:
-      - PORT=8765
+      # "Play Online" depuis la démo passe aussi par Traefik (et réveille le serveur)
+      - BATAILLE_SERVEUR=bataille-traefik:80
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "-o", "/dev/null", "http://localhost:6080/vnc.html"]
+      interval: 2s
+      timeout: 2s
+      retries: 3
+    labels:
+      - sablier.enable=true
+      - sablier.group=bataille-demo
+      - traefik.enable=true
+      - traefik.docker.allownonrunning=true
+      - traefik.http.routers.bataille-demo.rule=PathPrefix(`/demo/batailnail`)
+      - traefik.http.routers.bataille-demo.middlewares=bataille-demo-sablier,bataille-demo-prefixe
+      - traefik.http.services.bataille-demo.loadbalancer.server.url=http://bataille-navale-demo:6080
+      - traefik.http.middlewares.bataille-demo-prefixe.stripprefix.prefixes=/demo/batailnail
+      # page d'attente le temps que le jeu démarre ; la session reste ouverte tant que l'onglet est connecté
+      - traefik.http.middlewares.bataille-demo-sablier.plugin.sablier.sablierUrl=http://sablier:10000
+      - traefik.http.middlewares.bataille-demo-sablier.plugin.sablier.group=bataille-demo
+      - traefik.http.middlewares.bataille-demo-sablier.plugin.sablier.sessionDuration=5m
+      - traefik.http.middlewares.bataille-demo-sablier.plugin.sablier.keepAliveInterval=1m
+      - traefik.http.middlewares.bataille-demo-sablier.plugin.sablier.dynamic.displayName=Bataille Navale
+      - traefik.http.middlewares.bataille-demo-sablier.plugin.sablier.dynamic.refreshFrequency=2s

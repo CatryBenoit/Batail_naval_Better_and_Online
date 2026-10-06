@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bataille Navale</title>
+<script>
+  // Ouvre noVNC en se branchant sur le websocket du même chemin,
+  // pour que la démo marche aussi derrière un préfixe (ex. /demo/batailnail/).
+  var p = location.pathname;
+  var base = p.endsWith("/") ? p : p.endsWith(".html") ? p.replace(/[^/]*$/, "") : p + "/";
+  location.replace(base + "vnc.html?autoconnect=true&reconnect=true&resize=scale&path="
+      + encodeURIComponent(base.slice(1) + "websockify"));
+</script>
+</head>
+<body></body>
+</html>

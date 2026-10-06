@@ -37,8 +37,10 @@ public class PageControl {
     // après une partie, la zone d'affichage est découpée à la taille du jeu : on l'enlève pour les pages de menu
     private void ajusterFenetre(){
         root.setClip(null);
-        if (root.getScene() != null && root.getScene().getWindow() != null) {
-            root.getScene().getWindow().sizeToScene();
+        // en plein écran, la fenêtre doit garder la taille de l'écran (le contenu est mis à l'échelle)
+        if (root.getScene() != null && root.getScene().getWindow() instanceof javafx.stage.Stage stage
+                && !stage.isFullScreen()) {
+            stage.sizeToScene();
         }
     }
     public void lobby(LobbyPage lobbyPage){

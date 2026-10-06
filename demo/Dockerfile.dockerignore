@@ -1,0 +1,4 @@
+# l'image de démo a besoin de tout le code du jeu et des fichiers de demo/
+*
+!src/
+!demo/

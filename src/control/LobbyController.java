@@ -21,7 +21,8 @@ import java.util.prefs.Preferences;
  */
 public class LobbyController {
 
-    private static final String SERVEUR_PAR_DEFAUT = "localhost:8765";
+    // la démo Docker indique son serveur par la variable BATAILLE_SERVEUR
+    private static final String SERVEUR_PAR_DEFAUT = System.getenv().getOrDefault("BATAILLE_SERVEUR", "localhost:8765");
 
     private final LobbyPage page;
     private final PageControl pageControl;

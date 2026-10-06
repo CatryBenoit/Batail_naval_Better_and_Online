@@ -64,7 +64,37 @@ docker run -p 8765:8765 bataille-navale-serveur
 
 L'image lit le port dans la variable `PORT`. Elle peut donc être déployée telle quelle sur un hébergeur comme Render ou Railway.
 
-**Image toute prête** : GitHub Actions compile, lance les tests et publie l'image (amd64 et arm64) sur `ghcr.io/catrybenoit/bataille-navale-serveur:latest` à chaque push sur `main`. Le fichier [`docker-compose.yml`](docker-compose.yml) peut être collé tel quel dans un gestionnaire Docker, par exemple le plugin Compose d'OpenMediaVault.
+### Héberger le serveur et la démo (Docker + Sablier)
+
+GitHub Actions compile, lance les tests et publie deux images (amd64 et arm64) à chaque push sur `main` :
+
+- `ghcr.io/catrybenoit/bataille-navale-serveur` : le serveur du jeu en ligne ;
+- `ghcr.io/catrybenoit/bataille-navale-demo` : le jeu lui-même, jouable dans le navigateur (le jeu JavaFX tourne sur un écran virtuel affiché avec noVNC).
+
+Le fichier [`docker-compose.yml`](docker-compose.yml) se colle tel quel dans un gestionnaire Docker (par exemple le plugin Compose d'OpenMediaVault). Tout passe par Traefik sur le port `8765` :
+
+| Chemin | Conteneur |
+|---|---|
+| `/games…` | serveur du jeu en ligne : dans le jeu, on indique `IP-du-serveur:8765` |
+| `/demo/batailnail/` | démo dans le navigateur |
+
+[Sablier](https://github.com/sablierapp/sablier) démarre chaque conteneur à la première requête et l'arrête quand il ne sert plus : 10 minutes sans requête pour le serveur, 5 minutes après la fermeture de l'onglet pour la démo. Le premier appel au serveur attend son démarrage (environ 3 s). La démo affiche une page d'attente pendant ce temps.
+
+La démo n'a qu'un seul écran : deux visiteurs en même temps voient et contrôlent la même partie.
+
+Pour la servir sur un nom de domaine avec Nginx Proxy Manager, ajouter dans l'onglet *Advanced* de l'hôte (en remplaçant l'IP par celle du serveur) :
+
+```nginx
+location /demo/batailnail {
+    proxy_pass http://192.168.1.10:8765;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 1h;
+}
+```
 
 ### 2. Rejoindre une partie
 

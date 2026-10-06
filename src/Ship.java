@@ -4,6 +4,7 @@ import boardifier.model.Model;
 import control.*;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import view.HomePage;
 import view.LobbyPage;
@@ -49,6 +50,12 @@ public class Ship extends Application {
         // Afficher la page d'accueil
         pageControl.hp(homePage);
         stage.setTitle("BattleShip");
+        // démo dans le navigateur (java -Dbataille.pleinEcran=true) : le jeu occupe tout l'écran virtuel
+        if (Boolean.getBoolean("bataille.pleinEcran")) {
+            stage.setFullScreenExitHint("");
+            stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+            stage.setFullScreen(true);
+        }
         stage.show();
     }
 }

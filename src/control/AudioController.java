@@ -31,7 +31,8 @@ public class AudioController {
             audioClip.open(audioStream);
             audioClip.start();
             System.out.println("Playing: " + fileName);
-        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException | IllegalArgumentException e) {
+            // IllegalArgumentException : aucune sortie son (par exemple dans un conteneur Docker)
             System.err.println("Error playing the file: " + fileName);
             e.printStackTrace();
         }
