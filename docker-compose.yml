@@ -1,0 +1,11 @@
+# Serveur du jeu en ligne, à coller tel quel dans OpenMediaVault (Services > Compose > Files).
+# L'image est construite et publiée par GitHub Actions (.github/workflows/ci.yml).
+services:
+  bataille-navale:
+    image: ghcr.io/catrybenoit/bataille-navale-serveur:latest
+    container_name: bataille-navale
+    restart: unless-stopped
+    ports:
+      - "8765:8765"   # port de la machine : port du conteneur
+    environment:
+      - PORT=8765

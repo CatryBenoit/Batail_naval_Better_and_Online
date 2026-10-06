@@ -64,6 +64,8 @@ docker run -p 8765:8765 bataille-navale-serveur
 
 L'image lit le port dans la variable `PORT`. Elle peut donc être déployée telle quelle sur un hébergeur comme Render ou Railway.
 
+**Image toute prête** : GitHub Actions compile, lance les tests et publie l'image (amd64 et arm64) sur `ghcr.io/catrybenoit/bataille-navale-serveur:latest` à chaque push sur `main`. Le fichier [`docker-compose.yml`](docker-compose.yml) peut être collé tel quel dans un gestionnaire Docker, par exemple le plugin Compose d'OpenMediaVault.
+
 ### 2. Rejoindre une partie
 
 1. Dans le jeu, cliquez sur **Play Online**.

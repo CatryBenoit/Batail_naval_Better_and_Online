@@ -1,0 +1,130 @@
+# Compile le jeu et le serveur, lance les tests, puis publie l'image Docker du serveur
+# sur le GitHub Container Registry (ghcr.io) à chaque push sur main ou tag v*.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  JUNIT: 1.13.4
+  MOCKITO: 5.20.0
+  BYTEBUDDY: 1.17.8
+  OBJENESIS: "3.3"
+  JAVAFX: 21.0.5
+
+jobs:
+  build-test:
+    name: Compilation et tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Pas de Maven ni de Gradle : on récupère directement les jars nécessaires
+      - name: Bibliothèques (JavaFX, JUnit, Mockito)
+        run: |
+          mkdir -p lib && cd lib
+          M=https://repo1.maven.org/maven2
+          for u in \
+            org/junit/platform/junit-platform-console-standalone/$JUNIT/junit-platform-console-standalone-$JUNIT.jar \
+            org/mockito/mockito-core/$MOCKITO/mockito-core-$MOCKITO.jar \
+            net/bytebuddy/byte-buddy/$BYTEBUDDY/byte-buddy-$BYTEBUDDY.jar \
+            net/bytebuddy/byte-buddy-agent/$BYTEBUDDY/byte-buddy-agent-$BYTEBUDDY.jar \
+            org/objenesis/objenesis/$OBJENESIS/objenesis-$OBJENESIS.jar \
+            org/openjfx/javafx-base/$JAVAFX/javafx-base-$JAVAFX-linux.jar \
+            org/openjfx/javafx-graphics/$JAVAFX/javafx-graphics-$JAVAFX-linux.jar \
+            org/openjfx/javafx-controls/$JAVAFX/javafx-controls-$JAVAFX-linux.jar \
+            org/openjfx/javafx-media/$JAVAFX/javafx-media-$JAVAFX-linux.jar
+          do
+            curl -fsSLO "$M/$u"
+          done
+
+      - name: Compilation du jeu et des tests
+        run: |
+          CP=$(ls lib/*.jar | tr '\n' ':')
+          javac -d out/classes -cp "$CP" $(find src -name '*.java')
+          cp -r src/Images src/Elements out/classes/
+          javac -d out/test -cp "${CP}out/classes" $(find Test -name '*.java')
+
+      - name: Tests
+        run: |
+          CP=$(ls lib/*.jar | tr '\n' ':')
+          java -Djava.awt.headless=true -jar lib/junit-platform-console-standalone-$JUNIT.jar execute \
+            -cp "${CP}out/classes:out/test" --scan-classpath out/test \
+            --details=tree --reports-dir=out/rapports
+
+      - name: Jars (jeu + serveur)
+        run: |
+          mkdir -p dist
+          jar --create --file dist/bataille-navale.jar --main-class Ship -C out/classes .
+          ./serveur.sh --jar
+          cp build-serveur/serveur.jar dist/serveur.jar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jars
+          path: dist/
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapports-tests
+          path: out/rapports/
+
+      # Sur un tag v*, les jars sont joints à une release GitHub
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    name: Image Docker du serveur
+    needs: build-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # amd64 + arm64 : l'image tourne aussi bien sur un PC que sur un Raspberry Pi
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Connexion à ghcr.io
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/bataille-navale-serveur
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=sha,prefix=
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
