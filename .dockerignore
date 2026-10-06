@@ -1,0 +1,4 @@
+# seul le code du serveur (src/reseau, src/serveur) est utile à l'image
+*
+!src/reseau/
+!src/serveur/

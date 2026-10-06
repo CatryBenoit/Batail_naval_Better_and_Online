@@ -3,7 +3,6 @@ package control;
 import boardifier.model.Model;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import model.Ship;
 import view.SelectionPage;
 
 public class TextController implements ChangeListener<String> {
@@ -20,25 +19,21 @@ public class TextController implements ChangeListener<String> {
 
     @Override
     public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-        try {
-            missiles = newValue;
-            System.out.println(missiles);
-            // Update the model with the new missile count if needed
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid number format: " + newValue);
-            // Handle the invalid number format if needed
-        }
+        missiles = newValue;
     }
 
 
 
-    // Static method to get the current missiles value
+    // Static method to get the current missiles value (-1 if the field is empty or invalid)
     public static int getMissiles() {
-        if (missiles == null) {
+        if (missiles == null || missiles.isEmpty()) {
             return -1;
         }
-
+        try {
             return Integer.parseInt(missiles);
-
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid number format: " + missiles);
+            return -1;
+        }
     }
 }

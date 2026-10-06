@@ -15,6 +15,11 @@ public class shipPart extends GameElement {
     private int Y;
     private boolean toucher = false;
     private int idplayer;
+    // image à afficher : nom de l'image du bateau (ex. "navire3a") et position de la partie dans le bateau
+    private String apparence;
+    private int indexDansBateau;
+    // vrai si le bateau est vertical (c'est le cas dans le "port", avant d'être placé sur la grille)
+    private boolean vertical = true;
 
 
     public shipPart(int number, int color,int idplayer, GameStageModel gameStageModel ) {
@@ -35,7 +40,7 @@ public class shipPart extends GameElement {
     public int getNumber() {
         return number;
     }
-    public void setColors(int colors){this.colors = colors;}
+    public void setColors(int colors){this.colors = colors; addChangeFaceEvent();}
     public int getColor() {
         return colors;
     }
@@ -61,6 +66,23 @@ public class shipPart extends GameElement {
     // savoir si toucher true = toucher false = pas toucher
     public boolean esttoucher(){return toucher;}
     public int getIdplayer(){return idplayer;}
+
+    // apparence : image "<apparence>_<index + 1>.png" dans Images/navires (null = rond, comme avant)
+    public void setApparence(String apparence, int indexDansBateau) {
+        this.apparence = apparence;
+        this.indexDansBateau = indexDansBateau;
+        addChangeFaceEvent();
+    }
+    public String getApparence() {return apparence;}
+    public int getIndexDansBateau() {return indexDansBateau;}
+
+    public boolean isVertical() {return vertical;}
+    public void setVertical(boolean vertical) {
+        if (this.vertical != vertical) {
+            this.vertical = vertical;
+            addChangeFaceEvent();
+        }
+    }
 
 
     public void update() {

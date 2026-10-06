@@ -21,7 +21,7 @@ public class BattleboardUnitTest {
     @BeforeEach
     public void setUp() {
         gameStageModel = Mockito.mock(GameStageModel.class);
-        battleBoard = new BattleBoard(0, 0, gameStageModel);
+        battleBoard = new BattleBoard(0, 0, gameStageModel, "board");
     }
 
     @Test
@@ -52,7 +52,7 @@ public class BattleboardUnitTest {
     @Test
     public void testComputeValidCells_Missile() {
         // Set up the board with a missile
-        Missille missile = new Missille(1, 1, gameStageModel);
+        Missille missile = new Missille(1, 1, 0, gameStageModel);
         missile.setColor(1);
         battleBoard.addElement(missile,1,1);
 

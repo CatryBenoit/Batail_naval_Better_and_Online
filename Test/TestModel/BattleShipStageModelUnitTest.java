@@ -94,21 +94,45 @@ public class BattleShipStageModelUnitTest {
         assertFalse(result);
     }
 
-    //a fix
-    /*
+    // bateau réel de taille 3 posé horizontalement à partir de la colonne x, ligne y
+    private Ship vraiBateau(int x, int y) {
+        Ship ship = new Ship(0, 0, 3, battleShipStageModel);
+        ship.setShipParts(battleShipStageModel);
+        for (int i = 0; i < 3; i++) {
+            ship.getshippart()[i] = new shipPart(i + 1, 1, 0, battleShipStageModel);
+        }
+        ship.setCordonnerShip(y, x, 'H');
+        return ship;
+    }
+
     @Test
     public void testToucherOuPas() {
-        shipPart part = mock(shipPart.class);
-        when(shipsPlayer1[0].shipParts).thenReturn(mock(shipPart.class));
-        when(part.getcordonneX()).thenReturn(2);
-        when(part.getcordonneY()).thenReturn(3);
-        when(part.esttoucher()).thenReturn(false);
-
-        boolean result = battleShipStageModel.toucheroupas(shipsPlayer1, 2, 3);
-        assertTrue(result);
-        verify(part).setToucher(true);
+        Ship[] ships = { vraiBateau(2, 3) };
+        // x = colonne, y = ligne
+        assertTrue(battleShipStageModel.toucheroupas(ships, 3, 3));
+        assertTrue(ships[0].getshippart()[1].esttoucher());
+        assertFalse(battleShipStageModel.toucheroupas(ships, 3, 4));
+        assertFalse(ships[0].getcouler());
+        battleShipStageModel.toucheroupas(ships, 2, 3);
+        battleShipStageModel.toucheroupas(ships, 4, 3);
+        assertTrue(ships[0].getcouler());
     }
-*/
+
+    @Test
+    public void testVerifpeutetreposer_ContactEtBords() {
+        Ship[] ships = { vraiBateau(2, 3) }; // occupe (2,3) (3,3) (4,3)
+        // collé en dessous, dans le coin, ou par-dessus : interdit
+        assertFalse(battleShipStageModel.Verifpeutetreposer(ships, 2, 4, 2, 'H'));
+        assertFalse(battleShipStageModel.Verifpeutetreposer(ships, 5, 4, 2, 'V'));
+        assertFalse(battleShipStageModel.Verifpeutetreposer(ships, 0, 3, 3, 'H'));
+        // à une case d'écart : autorisé
+        assertTrue(battleShipStageModel.Verifpeutetreposer(ships, 2, 5, 3, 'H'));
+        // hors de la grille : interdit
+        assertFalse(battleShipStageModel.Verifpeutetreposer(ships, 8, 0, 3, 'H'));
+        assertFalse(battleShipStageModel.Verifpeutetreposer(ships, 0, 8, 3, 'V'));
+        assertFalse(battleShipStageModel.Verifpeutetreposer(ships, -1, 0, 3, 'H'));
+    }
+
     @Test
     public void testToutShipCouler() {
         when(shipsPlayer1[0].getcouler()).thenReturn(true);
@@ -116,7 +140,6 @@ public class BattleShipStageModelUnitTest {
         when(shipsPlayer1[2].getcouler()).thenReturn(true);
         when(shipsPlayer1[3].getcouler()).thenReturn(true);
         when(shipsPlayer1[4].getcouler()).thenReturn(true);
-
         boolean result = battleShipStageModel.toutShipCouler(shipsPlayer1);
         assertTrue(result);
 
@@ -125,68 +148,77 @@ public class BattleShipStageModelUnitTest {
         assertFalse(result);
     }
 
+    // putInContainer() déclenche le callback onPutInContainer défini dans setupCallbacks()
     @Test
     public void testSetupCallbacks_Player1Missille() {
-        when(missille.getIdjoueur()).thenReturn(1);
-
-        // Trigger the callback
-        battleShipStageModel.setupCallbacks();
-        battleShipStageModel.onPutInContainer();
-
+        when(missille.getIdjoueur()).thenReturn(0);
+        battleShipStageModel.putInContainer(missille, boardPlayer2, 0, 0);
         assertEquals(49, battleShipStageModel.getPlayer1ToPlay());
-        verify(missille, times(1)).getIdjoueur();
+        assertEquals(50, battleShipStageModel.getPlayer2ToPlay());
     }
 
     @Test
     public void testSetupCallbacks_Player2Missille() {
-        when(missille.getIdjoueur()).thenReturn(2);
-
-        // Trigger the callback
-        battleShipStageModel.setupCallbacks();
-        battleShipStageModel.onPutInContainer(missille, boardPlayer2, 0, 0);
-
+        when(missille.getIdjoueur()).thenReturn(1);
+        battleShipStageModel.putInContainer(missille, boardPlayer1, 0, 0);
         assertEquals(49, battleShipStageModel.getPlayer2ToPlay());
-        verify(missille, times(1)).getIdjoueur();
+        assertEquals(50, battleShipStageModel.getPlayer1ToPlay());
     }
 
     @Test
-    public void testSetupCallbacks_ComputePartyResult() {
-        when(missille.getIdjoueur()).thenReturn(1);
+    public void testSetupCallbacks_IgnoreHorsGrille() {
+        when(missille.getIdjoueur()).thenReturn(0);
+        // un missile rangé ailleurs que sur une grille ne compte pas comme un tir
+        battleShipStageModel.putInContainer(missille, shipsPlayer1[0], 0, 0);
+        assertEquals(50, battleShipStageModel.getPlayer1ToPlay());
+    }
+
+    @Test
+    public void testSetupCallbacks_FinDePartieSansMissiles() {
+        when(missille.getIdjoueur()).thenReturn(0);
         battleShipStageModel.setPlayer1ToPlay(1);
         battleShipStageModel.setPlayer2ToPlay(0);
-
-        // Mock toutShipCouler to return true
-        when(battleShipStageModel.toutShipCouler(any())).thenReturn(true);
-
-        // Spy on the battleShipStageModel to verify computePartyResult call
-        BattleShipStageModel spyBattleShipStageModel = spy(battleShipStageModel);
-
-        // Trigger the callback
-        spyBattleShipStageModel.setupCallbacks();
-        spyBattleShipStageModel.onPutInContainer(missille, boardPlayer1, 0, 0);
-
-        assertEquals(0, spyBattleShipStageModel.getPlayer1ToPlay());
-        verify(spyBattleShipStageModel, times(1)).computePartyResult();
+        battleShipStageModel.putInContainer(missille, boardPlayer2, 0, 0);
+        assertEquals(0, battleShipStageModel.getPlayer1ToPlay());
+        // aucune touche de part et d'autre : match nul, et fin de partie (stopGame, pas stopStage)
+        verify(model).setIdWinner(-1);
+        verify(model).stopGame();
     }
 
     @Test
-    public void testSetupCallbacks_NotComputePartyResult() {
-        when(missille.getIdjoueur()).thenReturn(1);
+    public void testSetupCallbacks_PasFinDePartie() {
+        when(missille.getIdjoueur()).thenReturn(0);
         battleShipStageModel.setPlayer1ToPlay(1);
         battleShipStageModel.setPlayer2ToPlay(1);
-
-        // Mock toutShipCouler to return false
-        when(battleShipStageModel.toutShipCouler(any())).thenReturn(false);
-
-        // Spy on the battleShipStageModel to verify computePartyResult call
-        BattleShipStageModel spyBattleShipStageModel = spy(battleShipStageModel);
-
-        // Trigger the callback
-        spyBattleShipStageModel.setupCallbacks();
-        spyBattleShipStageModel.onPutInContainer(missille, boardPlayer1, 0, 0);
-
-        assertEquals(0, spyBattleShipStageModel.getPlayer1ToPlay());
-        verify(spyBattleShipStageModel, times(0)).computePartyResult();
+        battleShipStageModel.putInContainer(missille, boardPlayer2, 0, 0);
+        assertEquals(0, battleShipStageModel.getPlayer1ToPlay());
+        verify(model, never()).stopGame();
     }
 
+    @Test
+    public void testGagnant_Joueur1QuiACouleLaFlotteAdverse() {
+        // toute la flotte du joueur 2 est coulée : le joueur 1 (index 0) gagne
+        for (Ship ship : shipsPlayer2) {
+            when(ship.getcouler()).thenReturn(true);
+        }
+        for (int i = 0; i < 3; i++) battleShipStageModel.ajouterTouche(0);
+        battleShipStageModel.ajouterTouche(1);
+        when(missille.getIdjoueur()).thenReturn(0);
+        battleShipStageModel.putInContainer(missille, boardPlayer2, 0, 0);
+        verify(model).setIdWinner(0);
+        verify(model).stopGame();
+    }
+
+    @Test
+    public void testGagnant_Joueur2() {
+        // plus de missiles : le joueur 2 a touché plus souvent
+        battleShipStageModel.ajouterTouche(0);
+        battleShipStageModel.ajouterTouche(1);
+        battleShipStageModel.ajouterTouche(1);
+        battleShipStageModel.setPlayer1ToPlay(0);
+        battleShipStageModel.setPlayer2ToPlay(1);
+        when(missille.getIdjoueur()).thenReturn(1);
+        battleShipStageModel.putInContainer(missille, boardPlayer1, 0, 0);
+        verify(model).setIdWinner(1);
+    }
 }

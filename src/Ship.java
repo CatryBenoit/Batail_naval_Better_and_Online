@@ -6,6 +6,7 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import view.HomePage;
+import view.LobbyPage;
 import view.SelectionPage;
 import view.ShipRootPane;
 import view.ShipView;
@@ -24,9 +25,7 @@ public class Ship extends Application {
     public void start(Stage stage) throws Exception {
         Logger.setLevel(Logger.LOGGER_DEBUG);
         Model model = new Model();
-        System.out.println("cc1");
         StageFactory.registerModelAndView("ship", "model.BattleShipStageModel", "view.ShipStageView");
-        System.out.println("cc2");
         ShipRootPane root = new ShipRootPane();
         ShipView battleShipView = new ShipView(model, stage, root);
         BattleShipControler control = new BattleShipControler(model,battleShipView);
@@ -39,13 +38,13 @@ public class Ship extends Application {
         // Placer les widgets dans les pages
         homePage.placeWidgets(root);
         selectionPage.placeWidgets(root);
-        AudioController audio = new AudioController();
-        audio.listAudioFiles();
-        audio.playMiss();
-
         // Créer et attacher le contrôleur de boutons
         new ButtonController(selectionPage, homePage, model, pageControl);
         new TextController(model,selectionPage);
+        // menu "Intro" : retour à la page d'accueil
+        control.setRetourAccueil(() -> pageControl.hp(homePage));
+        // page "Jouer en ligne"
+        new LobbyController(new LobbyPage(), homePage, pageControl, control);
 
         // Afficher la page d'accueil
         pageControl.hp(homePage);

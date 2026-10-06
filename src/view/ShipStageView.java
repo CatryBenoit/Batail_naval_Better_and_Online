@@ -26,10 +26,10 @@ public class ShipStageView extends GameStageView {
         BattleShipStageModel model = (BattleShipStageModel) gameStageModel;
 
 
-        addLook(new ClassicBoardLook(50,model.getBoardPlayer1(),1,Color.WHEAT,Color.AQUA,5,Color.BLACK,5,Color.BLACK,true));
+        addLook(new BoardMerLook(50,model.getBoardPlayer1(),1,Color.WHEAT,Color.AQUA,5,Color.BLACK,5,Color.BLACK,true));
 
 
-        addLook(new ClassicBoardLook(50,model.getBoardPlayer2(),1,Color.WHEAT,Color.AQUA,5,Color.BLACK,5,Color.BLACK,true));
+        addLook(new BoardMerLook(50,model.getBoardPlayer2(),1,Color.WHEAT,Color.AQUA,5,Color.BLACK,5,Color.BLACK,true));
 
 
         for (int i=0; i<model.getShipsPlayer1().length; i++){
@@ -39,7 +39,7 @@ public class ShipStageView extends GameStageView {
         }
 
 
-        //on ajoute les partie de bateaugit -c credential.helper= -c core.quotepath=false -c log.showSignature=false add --ignore-errors -A -f --sparse -- .idea/workspace.xml
+        //on ajoute les partie de bateau
         for (int i=0; i<model.getShipsPlayer1().length; i++){
             for (int j = 0; j < model.getShipsPlayer1()[i].shipParts.length; j++){
                 addLook(new ShipPartLook(25,model.getShipsPlayer1()[i].getshippart()[j]));
@@ -58,13 +58,12 @@ public class ShipStageView extends GameStageView {
         addLook(new StockMissileLook(40,40,model.getStockMissileJ2()));
 
         for (int i=0; i<model.getMissileJoueur2().length; i++){
-            addLook(new MissileLook(25,model.getMissileJoueur2()[i]));
-            addLook(new MissileLook(25,model.getMissileJoueur1()[i]));
+            addLook(new MissileLook(15,model.getMissileJoueur2()[i]));
+            addLook(new MissileLook(15,model.getMissileJoueur1()[i]));
 
         }
 
-        //addLook(new ShipPartLook(5,(model.getInfoPartie())));
-        addLook(new TextLook(25,"0x000000",model.getPlayer1Name()));
+        addLook(new TextLook(22,"0x000000",model.getInfoPartie()));
 
 
 

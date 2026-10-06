@@ -13,7 +13,7 @@ public class MissilleUnitTest {
     @BeforeEach
     public void setUp() {
         gameStageModel = Mockito.mock(GameStageModel.class);
-        missile = new Missille(1, 2, gameStageModel);
+        missile = new Missille(1, 2, 0, gameStageModel);
     }
 
     @Test

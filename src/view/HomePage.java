@@ -11,6 +11,7 @@ import javafx.scene.layout.VBox;
 
 public class HomePage {
     private Button start;
+    private Button online;
     private Button quit;
     private Button options;
     static Label gameName;
@@ -21,6 +22,7 @@ public class HomePage {
 
     private void initWidgets() {
         start = new Button("Start Game");
+        online = new Button("Play Online");
         quit = new Button("Quit Game");
         options = new Button("Options");
         gameName = new Label("Battle Ship");
@@ -32,7 +34,7 @@ public class HomePage {
         gameName.setStyle(
                 "-fx-font-size: 80;" +
                         "-fx-text-fill: #FFFFFF ;" +
-                        "-fx-font-weight: bold;"
+                        "-fx-font-weight: bold;" + Styles.OMBRE
         );
         fp0.getChildren().add(gameName);
 
@@ -46,6 +48,16 @@ public class HomePage {
         );
         start.setPrefSize(350,46);
 
+
+        FlowPane fpOnline = new FlowPane();
+        fpOnline.setAlignment(Pos.CENTER);
+        fpOnline.getChildren().add(online);
+        online.setStyle(
+                "-fx-font-size: 24;" +
+                        "-fx-background-color: lightgrey;" +
+                        "-fx-font-weight: bold;"
+        );
+        online.setPrefSize(350,46);
 
         FlowPane fp2 = new FlowPane();
         fp2.setAlignment(Pos.CENTER);
@@ -73,8 +85,8 @@ public class HomePage {
 
         HBox h = new HBox();
         VBox v = new VBox();
-        h.setStyle("-fx-background-image: url('/Images/background/imageBattelShip.png')");
-        v.getChildren().addAll(fp0,fp1, fp2, fp3);
+        h.setStyle("-fx-background-image: url('/Images/background/imageBattelShip.png');" + "-fx-background-size: cover;" + "-fx-background-position: center center;");
+        v.getChildren().addAll(fp0,fp1, fpOnline, fp2, fp3);
         v.setAlignment(Pos.CENTER);
         v.setSpacing(35);
         h.getChildren().add(v);
@@ -93,6 +105,10 @@ public class HomePage {
 
     public Button getStart() {
         return start;
+    }
+
+    public Button getOnline() {
+        return online;
     }
 
     public Button getQuit() {

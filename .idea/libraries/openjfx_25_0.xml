@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="openjfx-25.0">
+    <CLASSES>
+      <root url="file://$USER_HOME$/Documents/framework+langect/openjfx-25.0.1_linux-x64_bin-sdk/javafx-sdk-25.0.1/lib" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://$USER_HOME$/Documents/framework+langect/openjfx-25.0.1_linux-x64_bin-sdk/javafx-sdk-25.0.1/lib" recursive="false" />
+  </library>
+</component>

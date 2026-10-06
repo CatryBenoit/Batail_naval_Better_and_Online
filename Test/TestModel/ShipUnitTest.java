@@ -24,6 +24,14 @@ public class ShipUnitTest {
         ship = new Ship(0, 0, 3, gameStageModel);
     }
 
+    // crée le tableau des parties ET les parties (dans le jeu, c'est BattleShipStageModel qui les fournit)
+    private void creerParties() {
+        ship.setShipParts(gameStageModel);
+        for (int i = 0; i < ship.getTaille(); i++) {
+            ship.getshippart()[i] = new shipPart(i + 1, 1, 0, gameStageModel);
+        }
+    }
+
     @Test
     public void testSetAndGetSenstrue() {
         ship.setSens(true);
@@ -46,7 +54,7 @@ public class ShipUnitTest {
 
     @Test
     public void testSetAndGetCoordinates() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
         ship.setCordonnerShip(1, 1, 'H');
 
         assertEquals(1, ship.getPartCordonneX(0));
@@ -60,7 +68,7 @@ public class ShipUnitTest {
 
     @Test
     public void testSetAndGetCoordinatesVertical() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
         ship.setCordonnerShip(4, 1, 'V');
 
         assertEquals(1, ship.getPartCordonneX(0));
@@ -73,7 +81,7 @@ public class ShipUnitTest {
 
     @Test
     public void testVerifCouler() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
         ship.verifcouler();
         assertFalse(ship.getcouler());
 
@@ -86,7 +94,7 @@ public class ShipUnitTest {
 
     @Test
     public void testNbDepartCouler() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
 
         ship.getshippart()[0].setToucher(true);
         assertEquals(1, ship.nbdepartcouler());
@@ -100,7 +108,7 @@ public class ShipUnitTest {
 
     @Test
     public void testestcouler() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
         assertFalse( ship.getcouler());
         ship.verifcouler();
         assertFalse( ship.getcouler());
@@ -124,25 +132,26 @@ public class ShipUnitTest {
 
     @Test
     public void testGetShipID() {
-        assertEquals(1, ship.getShipID());
+        // le compteur est statique : on vérifie seulement que chaque nouveau bateau a le numéro suivant
+        int id = ship.getShipID();
         Ship anotherShip = new Ship(0, 0, 2, gameStageModel);
-        assertEquals(2, anotherShip.getShipID());
+        assertEquals(id + 1, anotherShip.getShipID());
     }
 
     @Test
     public void testSetCordonnerShipPlaceinvalidePossitif() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
         assertFalse(ship.setCordonnerShip(8, 8, 'H'));
     }
     @Test
     public void testSetCordonnerShipPlaceinvalideNégatif() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
         assertFalse(ship.setCordonnerShip(-8, -8, 'H'));
     }
 
     @Test
     public void testSetCordonnerShipPlaceinvalidenauvaisselettre() {
-        ship.setShipParts(gameStageModel);
+        creerParties();
         assertFalse(ship.setCordonnerShip(5, 5, 'c'));
     }
 }

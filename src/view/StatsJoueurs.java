@@ -32,7 +32,7 @@ public class StatsJoueurs {
             j1PartRestantes+=shipj1[i].getTaille()-shipj1[i].nbdepartcouler();
         }
 
-        for (int i=0; i<shipj1.length; i++){
+        for (int i=0; i<shipj2.length; i++){
             j2ShipTotal+=shipj2[i].getTaille();
             j2PartRestantes+=shipj2[i].getTaille()-shipj2[i].nbdepartcouler();
         }

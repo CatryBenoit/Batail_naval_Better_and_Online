@@ -2,9 +2,17 @@ package model;
 
 import boardifier.model.*;
 
-import java.sql.SQLOutput;
-
+/*
+ * Convention des coordonnées (partout dans le jeu) :
+ *   - X = numéro de colonne, Y = numéro de ligne (de 0 à 9)
+ *   - dans les conteneurs boardifier, un élément est placé en (ligne, colonne) = (Y, X)
+ *
+ * Joueur 1 (idJoueur 0) place ses bateaux sur boardplayer1 et tire sur boardplayer2.
+ * Joueur 2 (idJoueur 1) place ses bateaux sur boardplayer2 et tire sur boardplayer1.
+ */
 public class BattleShipStageModel extends GameStageModel {
+
+    public static final int TAILLE_GRILLE = 10;
 
     private int player1toplay;
     private int Player2toplay;
@@ -20,6 +28,14 @@ public class BattleShipStageModel extends GameStageModel {
     private TextElement InfoPartie;
     private StockMissile stockMissileJ1;
     private StockMissile stockMissileJ2;
+
+    // nombre de bateaux déjà placés par chaque joueur
+    private int[] nbShipPlaced = new int[2];
+    // cases sur lesquelles chaque joueur a déjà tiré : tirs[idJoueur][ligne][colonne]
+    private boolean[][][] tirs = new boolean[2][TAILLE_GRILLE][TAILLE_GRILLE];
+    // nombre de tirs réussis de chaque joueur (en ligne, on ne connaît pas la flotte adverse :
+    // on ne peut donc pas recompter les parties touchées, d'où ce compteur)
+    private int[] touches = new int[2];
 
 
     public BattleShipStageModel(String name, Model model) {
@@ -43,11 +59,26 @@ public class BattleShipStageModel extends GameStageModel {
     public StockMissile getStockMissileJ1() {return stockMissileJ1;}
     public StockMissile getStockMissileJ2() {return stockMissileJ2;}
 
+    // nombre d'images différentes de bateau pour chaque taille (voir outils/generer_navires.sh)
+    private static final int[] VARIANTES_IMAGES = {0, 2, 3, 2, 1, 1};
+
+    // nom de l'image du bateau n°j : les bateaux de même taille utilisent tour à tour les variantes a, b, c...
+    public static String apparence(Ship[] ships, int j) {
+        int taille = ships[j].getTaille();
+        if (taille >= VARIANTES_IMAGES.length || VARIANTES_IMAGES[taille] == 0) return null;
+        int occurrence = 0;
+        for (int k = 0; k < j; k++) {
+            if (ships[k].getTaille() == taille) occurrence++;
+        }
+        return "navire" + taille + (char) ('a' + occurrence % VARIANTES_IMAGES[taille]);
+    }
+
     public void setshippartplayer1(shipPart[] shipParts){
         int num =0;
         for(int j = 0; j < ShipPlayer1.length; j++) {
             for (int i = 0; i < ShipPlayer1[j].shipParts.length; i++) {
                 ShipPlayer1[j].shipParts[i] = shipParts[num];
+                shipParts[num].setApparence(apparence(ShipPlayer1, j), i);
                 addElement(ShipPlayer1[j].shipParts[i]);
                 ShipPlayer1[j].addElement(ShipPlayer1[j].shipParts[i], i, 0);
                 num++;
@@ -57,9 +88,10 @@ public class BattleShipStageModel extends GameStageModel {
     }
     public void setshippartplayer2(shipPart[] shipParts){
         int num =0;
-        for(int j = 0; j < ShipPlayer1.length; j++) {
+        for(int j = 0; j < ShipPlayer2.length; j++) {
             for (int i = 0; i < ShipPlayer2[j].shipParts.length; i++) {
                 ShipPlayer2[j].shipParts[i] = shipParts[num];
+                shipParts[num].setApparence(apparence(ShipPlayer2, j), i);
                 addElement(ShipPlayer2[j].shipParts[i]);
                 ShipPlayer2[j].addElement(ShipPlayer2[j].shipParts[i], i, 0);
                 num++;
@@ -69,7 +101,7 @@ public class BattleShipStageModel extends GameStageModel {
     }
 
 
-    public void setInfoPartie(TextElement infopartie){this.InfoPartie = infopartie;}
+    public void setInfoPartie(TextElement infopartie){this.InfoPartie = infopartie; addElement(infopartie);}
     public TextElement getInfoPartie(){return this.InfoPartie;}
 
 
@@ -98,7 +130,7 @@ public class BattleShipStageModel extends GameStageModel {
     //set et get du nom de chaque joueur
     public void setPlayer1Name(TextElement player1Name) {this.player1Name = player1Name; addElement(player1Name);}
     public TextElement getPlayer1Name() {return player1Name;}
-    public void setPlayer2Name(TextElement player1Name) {this.player2Name = player1Name; addElement(player2Name);}
+    public void setPlayer2Name(TextElement player2Name) {this.player2Name = player2Name; addElement(player2Name);}
     public TextElement getPlayer2Name() {return player2Name;}
 
     //Set et get des cellule pour les board
@@ -111,42 +143,84 @@ public class BattleShipStageModel extends GameStageModel {
         this.MissileJoueur2 = m;
         for(int i = 0; i < MissileJoueur2.length ; i++){addElement(MissileJoueur2[i]);}}
 
-    //verif que les cordonnée des ship ne se colle pas : sur les coter et les coin
+
+    // accès par numéro de joueur (0 = joueur 1, 1 = joueur 2)
+    public Ship[] getShips(int idJoueur) {return idJoueur == 0 ? ShipPlayer1 : ShipPlayer2;}
+    public Ship[] getShipsAdverse(int idJoueur) {return getShips(1 - idJoueur);}
+    public BattleBoard getBoard(int idJoueur) {return idJoueur == 0 ? Boardplayer1 : Boardplayer2;}
+    public BattleBoard getBoardAdverse(int idJoueur) {return getBoard(1 - idJoueur);}
+    public StockMissile getStockMissile(int idJoueur) {return idJoueur == 0 ? stockMissileJ1 : stockMissileJ2;}
+    public int getMissilesRestants(int idJoueur) {return idJoueur == 0 ? player1toplay : Player2toplay;}
 
 
+    // placement des bateaux
+    public int getNbShipPlaced(int idJoueur) {return nbShipPlaced[idJoueur];}
+    public void shipPlaced(int idJoueur) {nbShipPlaced[idJoueur]++;}
+    public boolean flottePlacee(int idJoueur) {return nbShipPlaced[idJoueur] >= getShips(idJoueur).length;}
+    public boolean phaseDeTir() {return flottePlacee(0) && flottePlacee(1);}
+    // en ligne : l'adversaire a placé sa flotte (sans nous dire où)
+    public void marquerFlottePlacee(int idJoueur) {nbShipPlaced[idJoueur] = getShips(idJoueur).length;}
+
+
+    // tirs déjà effectués (ligne/colonne sur la grille adverse)
+    public boolean dejaTire(int idJoueur, int ligne, int colonne) {return tirs[idJoueur][ligne][colonne];}
+    public void marquerTir(int idJoueur, int ligne, int colonne) {tirs[idJoueur][ligne][colonne] = true;}
+
+    public void ajouterTouche(int idJoueur) {touches[idJoueur]++;}
+    public int getTouches(int idJoueur) {return touches[idJoueur];}
+
+
+    //verif que le bateau tient dans la grille et qu'il ne touche aucun autre bateau : ni sur les côtés ni dans les coins
+    // xNewship = colonne de départ, yNewShip = ligne de départ
     public boolean Verifpeutetreposer(Ship[] ships, int xNewship, int yNewShip, int tailleNewShip, char sens){
-    int a =0;
-        int nbtotal =(tailleNewShip+2)*3;
-        int tabcord [][]= new int[nbtotal][2];
-        for(int i =0; i< tailleNewShip +2; i++){
-            for(int j = -1; j<1;j++){
-                if(sens=='H'){
-                    tabcord[a][0]=xNewship+i;
-                    tabcord[a][1]=yNewShip+j;
-                    a++;
-                }
-                else if(sens=='V'){
-                    tabcord[a][0]=xNewship+j;
-                    tabcord[a][1]=yNewShip+i;
-                    a++;
+        if (sens != 'H' && sens != 'V') return false;
+        int xFin = (sens == 'H') ? xNewship + tailleNewShip - 1 : xNewship;
+        int yFin = (sens == 'V') ? yNewShip + tailleNewShip - 1 : yNewShip;
+        if (xNewship < 0 || yNewShip < 0 || xFin >= TAILLE_GRILLE || yFin >= TAILLE_GRILLE) return false;
+
+        // zone interdite = le bateau + une case tout autour
+        for (Ship ship : ships) {
+            for (int l = 0; l < ship.getTaille(); l++) {
+                int x = ship.getPartCordonneX(l);
+                int y = ship.getPartCordonneY(l);
+                if (x >= xNewship - 1 && x <= xFin + 1 && y >= yNewShip - 1 && y <= yFin + 1) {
+                    return false;
                 }
             }
-            for(int k =0; k< ships.length;k++){
-                for(int l = 0; l<ships[k].getTaille(); l++){
-                    for(int m = 0; m< tabcord.length; m++){
-                        if(tabcord[m][0]==ships[k].shipParts[l].getcordonneX() && tabcord[m][1] == ships[k].shipParts[l].getcordonneY()){ return false;}
-                    }
-
-                }
-
-            }
-
         }
-
         return true;
     }
 
 
+    // renvoie la partie de bateau située en (x = colonne, y = ligne), ou null
+    public shipPart partieA(Ship[] ships, int x, int y){
+        Ship ship = bateauA(ships, x, y);
+        if (ship == null) return null;
+        for (shipPart part : ship.shipParts) {
+            if (part.getcordonneX() == x && part.getcordonneY() == y) return part;
+        }
+        return null;
+    }
+
+    // renvoie le bateau qui a une partie en (x = colonne, y = ligne), ou null
+    public Ship bateauA(Ship[] ships, int x, int y){
+        for (Ship ship : ships) {
+            for (shipPart part : ship.shipParts) {
+                if (part.getcordonneX() == x && part.getcordonneY() == y) return ship;
+            }
+        }
+        return null;
+    }
+
+    // premier bateau pas encore coulé de la taille donnée, ou null
+    public Ship bateauNonCouleDeTaille(Ship[] ships, int taille){
+        for (Ship ship : ships) {
+            if (!ship.getcouler() && ship.getTaille() == taille) return ship;
+        }
+        return null;
+    }
+
+    // x = colonne, y = ligne
     public boolean toucheroupas(Ship[] ships, int x , int y){
         for(int i = 0; i < ships.length; i++){
             for(int j= 0; j < ships[i].shipParts.length; j++ ){
@@ -168,21 +242,19 @@ public class BattleShipStageModel extends GameStageModel {
 
     public void setupCallbacks(){
         onPutInContainer( (element, gridDest, rowDest, colDest) -> {
-                 if (gridDest != Boardplayer1 && gridDest!= Boardplayer2 || element.getType() ==50 ) return;
+                // seuls les missiles qui arrivent sur une grille comptent comme un tir
+                if ((gridDest != Boardplayer1 && gridDest != Boardplayer2) || !(element instanceof Missille)) return;
 
                 Missille m = (Missille) element;
+                m.setTire(true);
                 if (m.getIdjoueur() == 0) {
                     player1toplay--;
-                    System.out.println(player1toplay);
-                    System.out.println(Player2toplay);
-
                 }
                 else {
                     Player2toplay--;
-                    System.out.println(player1toplay);
-                    System.out.println(Player2toplay);
                 }
-                if ((player1toplay == 0 && Player2toplay == 0 ) || (toutShipCouler(ShipPlayer1)|| toutShipCouler(ShipPlayer2))) {
+                System.out.println("missiles restants : J1 = " + player1toplay + ", J2 = " + Player2toplay);
+                if ((player1toplay <= 0 && Player2toplay <= 0 ) || toutShipCouler(ShipPlayer1) || toutShipCouler(ShipPlayer2)) {
                     computePartyResult();
                 }
             });
@@ -202,32 +274,25 @@ public class BattleShipStageModel extends GameStageModel {
     }
 
 
-
-
-    //méthode pour regarder qui gagne dans la partie
+    //méthode pour regarder qui gagne dans la partie :
+    // le joueur 1 marque un point à chaque tir qui touche un bateau du joueur 2, et inversement.
+    // (si une flotte est entièrement coulée, son adversaire a forcément le score maximum)
     private void computePartyResult(){
-    int shippartcoulerplayer1 =0;
-    int shippartcoulerplayer2 = 0;
+        int scoreJ1 = touches[0];
+        int scoreJ2 = touches[1];
 
-    for(int i =0; i<ShipPlayer1.length ; i++){
-        shippartcoulerplayer1 += ShipPlayer1[i].nbdepartcouler();
-    }
-    for(int i =0; i<ShipPlayer2.length ; i++){
-        shippartcoulerplayer2 += ShipPlayer2[i].nbdepartcouler();
-    }
-    if(shippartcoulerplayer1 > shippartcoulerplayer2){
-        System.out.println("le joueur :" + player1Name + " a gagner avec : "+ shippartcoulerplayer1 + "touche.");
-        model.setIdWinner(1);
-        model.stopStage();
-    } else if (shippartcoulerplayer2 > shippartcoulerplayer1) {
-        System.out.println("le joueur :" + player2Name + " a gagner avec : "+ shippartcoulerplayer2 + "touche.");
-        model.setIdWinner(2);
-        model.stopStage();
-    }else{
-        model.setIdWinner(-1);
-        System.out.println("Match null");
-        model.stopStage();
-    }
+        if (scoreJ1 > scoreJ2) {
+            System.out.println("le joueur 1 a gagné avec : " + scoreJ1 + " touches.");
+            model.setIdWinner(0); // index du joueur dans la liste des joueurs du modèle
+        } else if (scoreJ2 > scoreJ1) {
+            System.out.println("le joueur 2 a gagné avec : " + scoreJ2 + " touches.");
+            model.setIdWinner(1);
+        } else {
+            System.out.println("Match nul");
+            model.setIdWinner(-1);
+        }
+        // stopGame (et pas stopStage) : c'est ce qui déclenche l'affichage du gagnant par le contrôleur
+        model.stopGame();
     }
 
 
@@ -250,7 +315,10 @@ public class BattleShipStageModel extends GameStageModel {
     public void setinvisiblebateau(Ship[] ships){
         for (int j = 0; j < ships.length; j++) {
             for (int i = 0; i < ships[j].getTaille(); i++) {
-                ships[j].shipParts[i].setVisible(false);
+                // un bateau déjà coulé reste visible
+                if (!ships[j].getcouler()) {
+                    ships[j].shipParts[i].setVisible(false);
+                }
             }
         }
     }
@@ -263,12 +331,7 @@ public class BattleShipStageModel extends GameStageModel {
     }
 
     public Ship getship(int numero, Ship[]ships){
-        if (ships.length < numero) {return null;}
+        if (numero < 0 || numero >= ships.length) {return null;}
         return ships[numero];
-    }
-
-    public void setjoueur1invisible(){
-        getBoardPlayer1().setVisible(false);
-        //pas fini
     }
 }

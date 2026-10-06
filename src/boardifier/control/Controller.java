@@ -287,11 +287,15 @@ public abstract class Controller {
         processLookEvents();
 
         if (model.isEndStage()) {
+            // les dernières actions (ex. le dernier tir) ont pu ajouter des événements pendant cette image :
+            // on les traite avant d'arrêter la boucle, sinon leur affichage ne serait jamais mis à jour
+            processEvents();
             controlAnimation.stopAnimation();
             Platform.runLater( () -> {
                 stopStage();});
         }
         else if (model.isEndGame()) {
+            processEvents();
             controlAnimation.stopAnimation();
             Platform.runLater( () -> {endGame();});
         }

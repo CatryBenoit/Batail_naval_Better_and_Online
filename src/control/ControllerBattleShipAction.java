@@ -34,10 +34,11 @@ public class ControllerBattleShipAction extends ControllerAction implements Even
                 System.exit(1);
             }
         });
-        // set event handler on the MenuIntro item
+        // set event handler on the MenuIntro item : retour à la page d'accueil
         shipView.getMenuIntro().setOnAction(e -> {
             control.stopGame();
             shipView.resetView();
+            ((BattleShipControler) control).retourAccueil();
         });
         // set event handler on the MenuQuit item
         shipView.getMenuQuit().setOnAction(e -> {

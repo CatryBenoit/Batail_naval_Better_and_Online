@@ -3,6 +3,7 @@ package control;
 import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -13,12 +14,19 @@ public class AudioController {
     private void play(String fileName) {
         String filePath = audioPath + fileName;
         try {
-            File audioFile = new File(filePath);
-            if (!audioFile.exists()) {
-                System.err.println("File not found: " + filePath);
-                return;
+            // le son est cherché dans le classpath (comme les images), sinon dans src/ depuis la racine du projet
+            URL audioUrl = AudioController.class.getResource("/Elements/Audio/" + fileName);
+            if (audioUrl == null) {
+                File audioFile = new File(filePath);
+                if (!audioFile.exists()) {
+                    System.err.println("File not found: " + filePath);
+                    return;
+                }
+                audioUrl = audioFile.toURI().toURL();
             }
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
+            // on libère le son précédent avant d'en jouer un nouveau
+            stop();
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioUrl);
             audioClip = AudioSystem.getClip();
             audioClip.open(audioStream);
             audioClip.start();
@@ -34,10 +42,10 @@ public class AudioController {
     }
 
     public void stop() {
-        if (audioClip != null && audioClip.isRunning()) {
+        if (audioClip != null) {
             audioClip.stop();
             audioClip.close();
-            System.out.println("Playback stopped.");
+            audioClip = null;
         }
     }
 

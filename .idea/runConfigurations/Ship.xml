@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Ship" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="Ship" />
+    <module name="batail-naval" />
+    <option name="VM_PARAMETERS" value="--module-path &quot;$USER_HOME$/Documents/framework+langect/openjfx-25.0.1_linux-x64_bin-sdk/javafx-sdk-25.0.1/lib&quot; --add-modules javafx.controls,javafx.media --enable-native-access=javafx.graphics" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

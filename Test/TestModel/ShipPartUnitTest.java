@@ -21,7 +21,7 @@ public class ShipPartUnitTest {
                 return null;
             }
         }; // Assuming you have a default constructor
-        shipPart = new shipPart(1, 2, gameStageModel);
+        shipPart = new shipPart(1, 2, 0, gameStageModel);
     }
 
     @Test
