@@ -7,7 +7,8 @@
 # --- étape 1 : compilation (le bytecode est le même quelle que soit l'architecture)
 FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build
 ARG TARGETARCH
-ARG JAVAFX=21.0.5
+# 23 : la plus récente qui tourne encore sur Java 21 et existe aussi pour Linux ARM (pas la 21)
+ARG JAVAFX=23.0.2
 WORKDIR /build
 # JavaFX contient du code natif : on prend les jars de l'architecture de l'image finale
 RUN set -e; \
